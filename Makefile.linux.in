@@ -1,0 +1,37 @@
+# File: Makefile
+# Project "dir2src"
+# (c) 2002 -2016 Andreas Fink
+# Create: Andreas Fink (andreas@fink.org)
+#
+#
+
+CC=@CC@
+CFLAGS=@CFLAGS@
+LDFLAGS=@LDFLAGS@
+LIBS=@LIBS@
+
+PKGCONFIGFILE=dir2src.pc
+
+MFILES = Classes/main.m
+HFILES = 
+MOFILES  = $(MFILES:.m=.m.o)
+OFILES = $(MOFILES)
+EXE=dir2src
+
+INCLUDEDIRS = -I dir2src
+
+${EXE}: ${OFILES}
+	${CC} -o ${EXE}  ${LDFLAGS} ${OFILES} ${LIBS} ${STATIC_LIBS}
+
+install: ${LIB}
+	-install -b -g root -o root -m 755 ${EXE} ${DESTDIR}/usr/local/bin
+
+clean:
+	rm -f $(OFILES)
+
+.SUFFIXES: .m.o .o .m .c
+
+%.m.o:	%.m
+	${CC} -c ${CFLAGS} -x objective-c $< ${INCLUDEDIRS} -o $@
+
+
