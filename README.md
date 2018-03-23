@@ -58,7 +58,6 @@ built in pages like this:
 		@autoreleasepool
 		{
 			NSString *path = req.url.relativePath;
-			NSLog(@"WebPathRequested: %@",path);
 			if([path hasPrefix:@"/api"])
 			{
 				/* do your generated code here */
