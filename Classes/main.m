@@ -21,7 +21,7 @@ FILE *fout   = NULL;
 const char *headfilename = "out.h";
 const char *outfilename = "out.m";
 const char *toolname = "dir2src";
-
+const char *source ="(https://github.com/andreasfink/dir2src)";
 NSMutableArray *allFiles = NULL;
 
 void header(void);
@@ -38,14 +38,14 @@ void header(void)
     fprintf(fhead,"//\n");
     fprintf(fhead,"//\n");
     fprintf(fhead,"//\n");
-    fprintf(fhead,"// automatically generated using '%s'\n",toolname);
+    fprintf(fhead,"// automatically generated using '%s' %s\n",toolname,source);
     fprintf(fhead,"// on %s",nowString);
     fprintf(fhead,"\n");
 
     fprintf(fout,"//\n");
     fprintf(fout,"//\n");
     fprintf(fout,"//\n");
-    fprintf(fout,"// automatically generated using '%s'\n",toolname);
+    fprintf(fout,"// automatically generated using '%s' %s\n",toolname,source);
     fprintf(fout,"// on %s",nowString);
     fprintf(fout,"\n");
 
@@ -330,10 +330,48 @@ void write_files(void)
             fprintf(fout,"\t\t\"%s\",\n",entry.mimeType.UTF8String);
         }
         fprintf(fout,"\t\t\"");
-        
+
+        BOOL startNewLine = NO;
+        int char_count = 0;
         for(i=0;i<len;i++)
         {
-            fprintf(fout,"\\x%02X",ptr[i]);
+            uint8_t c = ptr[i];
+            if(c=='\n')
+            {
+                fprintf(fout,"\\n");
+                startNewLine = YES;
+            }
+            else if(c=='"')
+            {
+                fprintf(fout,"\\\"");
+                char_count +=2;
+            }
+            else if(c=='\\')
+            {
+                fprintf(fout,"\\\\");
+                char_count +=2;
+            }
+            else if(isprint(c))
+            {
+                fprintf(fout,"%c",c);
+                char_count++;
+
+            }
+            else
+            {
+                fprintf(fout,"\\x%02X",c);
+                char_count += 4;
+            }
+            if(char_count > 240)
+            {
+                startNewLine=YES;
+            }
+            if(startNewLine)
+            {
+                fprintf(fout,"\"\n\t\t\"");
+                startNewLine = NO;
+                char_count=0;
+            }
         }
         fprintf(fout,"\",\n");
         fprintf(fout,"\t\t%d\n",(int)len);
