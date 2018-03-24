@@ -16,6 +16,7 @@ NSString *mimeTypeForFilename(NSString *filename);
 #include <stdio.h>
 #include <time.h>
 
+BOOL textMode = NO;
 FILE *fhead  = NULL;
 FILE *fout   = NULL;
 const char *headfilename = "out.h";
@@ -57,7 +58,7 @@ void header(void)
     fprintf(fhead,"{\n");
     fprintf(fhead,"    const char *path;\n");
     fprintf(fhead,"    const char *mimeType;\n");
-    fprintf(fhead,"    const char *data;\n");
+    fprintf(fhead,"    const unsigned char *data;\n");
     fprintf(fhead,"    size_t datalen;\n");
     fprintf(fhead,"} webDirEntry;\n");
     fprintf(fhead,"\n");
@@ -139,6 +140,14 @@ int main(int argc, const char *argv[])
 				fprintf(stderr,"Usage: %s --header <headerfile.h> --output <outputfile.m> directory1 directory2...\n",toolname);
 				exit(0);
 			}
+            if(strcmp(option,"--text")==0)
+            {
+                textMode = YES;
+            }
+            else if(strcmp(option,"--binary")==0)
+            {
+                textMode = NO;
+            }
 			if(strcmp(option,"--header")==0)
 			{
 				i++;
@@ -329,51 +338,78 @@ void write_files(void)
         {
             fprintf(fout,"\t\t\"%s\",\n",entry.mimeType.UTF8String);
         }
-        fprintf(fout,"\t\t\"");
+        fprintf(fout,"\t\t");
 
-        BOOL startNewLine = NO;
-        int char_count = 0;
-        for(i=0;i<len;i++)
+        if(textMode==YES)
         {
-            uint8_t c = ptr[i];
-            if(c=='\n')
+            fprintf(fout,"\"");
+            BOOL startNewLine = NO;
+            int char_count = 0;
+            for(i=0;i<len;i++)
             {
-                fprintf(fout,"\\n");
-                startNewLine = YES;
-            }
-            else if(c=='"')
-            {
-                fprintf(fout,"\\\"");
-                char_count +=2;
-            }
-            else if(c=='\\')
-            {
-                fprintf(fout,"\\\\");
-                char_count +=2;
-            }
-            else if(isprint(c))
-            {
-                fprintf(fout,"%c",c);
-                char_count++;
+                uint8_t c = ptr[i];
+                if(c=='\n')
+                {
+                    fprintf(fout,"\\n");
+                    startNewLine = YES;
+                }
+                if(c=='\t')
+                {
+                    fprintf(fout,"\t");
+                    char_count +=1;
+                }
+                else if(c=='"')
+                {
+                    fprintf(fout,"\\\"");
+                    char_count +=2;
+                }
+                else if(c=='\\')
+                {
+                    fprintf(fout,"\\\\");
+                    char_count +=2;
+                }
+                else if(isprint(c))
+                {
+                    fprintf(fout,"%c",c);
+                    char_count++;
 
+                }
+                else
+                {
+                    fprintf(fout,"\\x%02X",c);
+                    char_count += 4;
+                }
+                if(char_count > 240)
+                {
+                    startNewLine=YES;
+                }
+                if(startNewLine)
+                {
+                    fprintf(fout,"\"\n\t\t\"");
+                    startNewLine = NO;
+                    char_count=0;
+                }
             }
-            else
-            {
-                fprintf(fout,"\\x%02X",c);
-                char_count += 4;
-            }
-            if(char_count > 240)
-            {
-                startNewLine=YES;
-            }
-            if(startNewLine)
-            {
-                fprintf(fout,"\"\n\t\t\"");
-                startNewLine = NO;
-                char_count=0;
-            }
+            fprintf(fout,"\"");
         }
-        fprintf(fout,"\",\n");
+        else
+        {
+            fprintf(fout,"(unsigned char []){");
+            for(i=0;i<len;i++)
+            {
+                fprintf(fout,"0x%02x",ptr[i]);
+                if(i != (len-1))
+                {
+                    fprintf(fout,",");
+                }
+                if((i % 32)==31)
+                {
+                    fprintf(fout,"\n\t\t          ");
+                }
+            }
+            fprintf(fout,"}");
+        }
+        fprintf(fout,",\n");
         fprintf(fout,"\t\t%d\n",(int)len);
         fprintf(fout,"\t},\n");
     }
